@@ -4,6 +4,8 @@ import json
 import os
 from pathlib import Path
 import sys
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from .core import Manager, schema
 from .transport import Transport
 
@@ -11,9 +13,13 @@ S = {'type': 'string'}
 LIST = {'type': 'array', 'items': S, 'maxItems': 30}
 DEFS = [
  ('strata_health', 'Check the configured Strata API / SSH tunnel and list operator-configured tests.', {}, []),
- ('strata_submit', 'Delegate bounded research or editing to Strata. Clean Git repo required. Returns task_id immediately; use summary with wait_seconds=20, not frequent polling.',
+ ('strata_submit', 'Delegate bounded work. In queued mode supply a stable owner label and unique request_key (reuse for identical retries only). For auto, Cursor must supply reasoning_effort and a short depth_reason. Respect explicit user depth; never silently escalate. Returns task_id; monitor progress UI, avoid repeated model polling.',
   {'objective': S, 'mode': {'type': 'string', 'enum': ['research', 'edit']},
    'allowed_paths': LIST, 'acceptance': LIST, 'test_ids': LIST,
+   'owner': S, 'request_key': S,
+   'depth': {'type':'string','enum':['auto','low','medium','high']},
+   'reasoning_effort': {'type':'string','enum':['low','medium','high']},
+   'depth_reason': S, 'max_output_tokens': {'type':'integer','minimum':128,'maximum':8192},
    'max_steps': {'type': 'integer', 'minimum': 1, 'maximum': 30}}, ['objective']),
  ('strata_summary', 'Get compact untrusted worker summary, test evidence and patch ID. Accept criteria are reviewed by Cursor, not certified by Worker.',
   {'task_id': S, 'wait_seconds': {'type': 'integer', 'minimum': 0, 'maximum': 20}}, ['task_id']),
@@ -32,7 +38,7 @@ def dispatch(manager, method, params):
         if version not in ('2024-11-05', '2025-03-26', '2025-06-18'):
             version = '2025-06-18'
         return {'protocolVersion': version, 'capabilities': {'tools': {}},
-                'serverInfo': {'name': 'strata-coder', 'version': '0.1.0'}}
+                'serverInfo': {'name': 'strata-coder', 'version': '0.3.0'}}
     if method == 'ping':
         return {}
     if method == 'tools/list':
@@ -56,7 +62,7 @@ def dispatch(manager, method, params):
             (kind == 'array' and not isinstance(v, list))):
             raise ValueError('Invalid argument type: ' + k)
     if name == 'strata_health':
-        return {**manager.transport.health(), 'test_ids': list(manager.tests)}
+        return {**manager.transport.health(), 'test_ids': list(manager.tests), 'default_depth': manager.config.get('depth','low'), 'depth_levels':['auto','low','medium','high']}
     functions = {'strata_submit': manager.submit, 'strata_summary': manager.summary,
                  'strata_evidence': manager.get_evidence, 'strata_cancel': manager.cancel,
                  'strata_apply': manager.apply}
@@ -71,29 +77,47 @@ def main():
     parser.add_argument('--health', action='store_true')
     args = parser.parse_args()
     config = json.loads(Path(args.config).read_text()) if args.config else json.loads(os.environ.get('STRATA_CODER_CONFIG', '{}'))
-    transport = Transport(config)
+    queued = config.get('execution_mode', 'single') == 'queued'
+    if queued:
+        from .queue_client import QueuedManager, BrokerClient, QueueHealth
+        broker = BrokerClient(config)
+        transport = QueueHealth(broker)
+    else:
+        transport = Transport(config)
     if args.health:
         try:
             print(json.dumps({**transport.health(), 'test_ids': list(config.get('tests', {}))}))
         finally:
             transport.close()
+            if queued: broker.close()
         return
     state_dir = Path(args.state).resolve()
     if state_dir == Path(args.repo).resolve() or Path(args.repo).resolve() in state_dir.parents:
         raise ValueError('State must be outside the repository')
     state_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
-    lock_file = (state_dir / 'gateway.lock').open('a+b')
-    try:
-        if os.name == 'nt':
-            import msvcrt
-            lock_file.write(b'0'); lock_file.flush(); lock_file.seek(0)
-            msvcrt.locking(lock_file.fileno(), msvcrt.LK_NBLCK, 1)
-        else:
-            import fcntl
-            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-    except OSError:
-        raise SystemExit('Another Strata-Coder gateway owns this workspace state')
-    manager = Manager(args.repo, args.state, config, transport)
+    from .locking import exclusive_lock
+    lock_file = exclusive_lock(state_dir / 'gateway.lock')
+    manager = QueuedManager(args.repo, args.state, config, broker) if queued else Manager(args.repo, args.state, config, transport)
+    output_lock = threading.Lock()
+    slots = threading.BoundedSemaphore(128)
+    pool = ThreadPoolExecutor(max_workers=16)
+    def handle(req):
+        try:
+            try:
+                result = dispatch(manager, req.get('method'), req.get('params') or {})
+                if req.get('method') == 'tools/call':
+                    result = {'content': [{'type': 'text', 'text': json.dumps(result, ensure_ascii=False)}]}
+                response = {'jsonrpc': '2.0', 'id': req['id'], 'result': result}
+            except Exception as e:
+                if req.get('method') == 'tools/call':
+                    response = {'jsonrpc': '2.0', 'id': req['id'], 'result': {'isError': True,
+                        'content': [{'type': 'text', 'text': str(e)[:800]}]}}
+                else:
+                    response = {'jsonrpc': '2.0', 'id': req['id'], 'error': {'code': -32601 if isinstance(e, LookupError) else -32600, 'message': str(e)[:500]}}
+            with output_lock:
+                print(json.dumps(response, ensure_ascii=False), flush=True)
+        finally:
+            slots.release()
     try:
         while True:
             line = sys.stdin.buffer.readline(1_000_001)
@@ -108,10 +132,10 @@ def main():
                     raise ValueError('Invalid JSON-RPC request')
                 if 'id' not in req:
                     continue
-                result = dispatch(manager, req.get('method'), req.get('params') or {})
-                if req.get('method') == 'tools/call':
-                    result = {'content': [{'type': 'text', 'text': json.dumps(result, ensure_ascii=False)}]}
-                response = {'jsonrpc': '2.0', 'id': req['id'], 'result': result}
+                if not slots.acquire(blocking=False):
+                    raise ValueError('Too many outstanding MCP requests; use progress UI instead of frequent polling')
+                pool.submit(handle, req)
+                continue
             except Exception as e:
                 rid = req.get('id') if isinstance(req, dict) else None
                 if isinstance(req, dict) and req.get('method') == 'tools/call':
@@ -120,9 +144,12 @@ def main():
                 else:
                     code = -32700 if req is None else (-32601 if isinstance(e, LookupError) else -32600)
                     response = {'jsonrpc': '2.0', 'id': rid, 'error': {'code': code, 'message': str(e)[:500]}}
-            print(json.dumps(response, ensure_ascii=False), flush=True)
+            with output_lock:
+                print(json.dumps(response, ensure_ascii=False), flush=True)
     finally:
+        pool.shutdown(wait=True)
         manager.close()
+        lock_file.close()
 
 
 if __name__ == '__main__':

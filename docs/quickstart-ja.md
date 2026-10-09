@@ -1,15 +1,22 @@
 # はじめてのStrata-Coder導入ガイド
 
+**v0.3の既定値はdecision方式です。新規導入は[短い判断資料と指令で使う](decision-mode-ja.md)を参照してください。以下はsupervisionMode=legacyを選んだ場合のv0.2接続手順です。**
+
+SSHの接続名が未設定の場合は、先に2-4のSSH設定を行ってください。
+
 このガイドでは、**gdx-sparkで動いているStrataを、手元のPCのCursorから利用する**ところまで設定します。最初はパスワードでSSH接続できれば進められる方法を説明します。
 
 Strata-Coderは開発初期版です。LinuxでのWorker動作とSSH経由の推論は検証済みですが、Cursorの実画面での連携、Windows・macOSは検証中です。画面名が違ったり、エラーが出たりした場合は、末尾の「困ったとき」を確認してください。
 
+このページは **v0.2の共有キュー（queuedモード）** を使う手順です。Agent数は固定せず、実際に動かすWorker数と推論数を別々に制限します。**v0.2はまだpushしていない開発版です。公開mainの古いVSIXでは、この手順を実行できません。**
+
 ## 最初に：何をどこへ入れるのか
 
 - **Strata**：AIモデルを動かすサーバー。**gdx-spark側**で動かします。
-- **Strata-Coder**：Strataに調査や修正を任せるプログラム。**Cursorを使う手元のPC側**へ拡張機能として入れます。
+- **Strata-Coderのコーディネーター**：依頼を共有キューで管理し、Strataへの推論数を制御します。**gdx-spark側**で１つ起動します。
+- **Strata-CoderのCursor拡張**：**手元のPC側**へ入れます。Workerが手元のGitリポジトリのコピーで調査・編集・テストを実行します。
 - **Cursor**：あなたが依頼を入力するエディタ。方針の決定と、Strataが作った変更のレビューを担当します。
-- **SSHトンネル**：手元のPCからgdx-sparkのStrataへつなぐ通路です。最初はターミナルで起動します。
+- **SSHトンネル**：手元のPCからgdx-sparkのコーディネーターへつなぐ通路です。最初はターミナルで起動します。
 
 手元のPCにAIモデルをダウンロードする必要はありません。Cursorの通常のモデルは引き続き使用します。Strataに詳しい調査や修正作業を任せることで、Cursorが読む情報量を減らす構成です。削減率はまだ測定していません。
 
@@ -107,7 +114,7 @@ curl http://127.0.0.1:8080/v1/models
 
 - `Connection refused`：Strataがまだ起動していない、終了している、またはポート番号が違います。1-3の起動ログを確認してください。
 - まだ読み込み中：起動用ターミナルのログを確認して待ち、再度実行します。
-- `401`や認証エラー：APIキーが必要な可能性があります。Strata管理者へ確認し、後の3-4で同じAPIキーを登録します。
+- `401`や認証エラー：APIキーが必要な可能性があります。Strata管理者へ確認し、2-3でコーディネーターを起動する環境にAPIキーを設定します。
 
 ### 1-5. 確認用ターミナルだけ手元のPCへ戻す
 
@@ -123,7 +130,7 @@ exit
 
 ---
 
-## 2. Strata-Coderのセットアップ詳細【手元のPC側】
+## 2. Strata-Coderのセットアップ詳細【gdx-sparkと手元のPC】
 
 ### 2-1. 必要なソフトを確認する
 
@@ -163,22 +170,57 @@ sudo apt install python3 git openssh-client
 
 インストールした後はターミナルを開き直して、バージョンを再確認してください。**通常の利用にNode.jsやnpmは不要です。**
 
-### 2-2. 拡張ファイルをダウンロードする
+### 2-2. v0.2のプログラムと拡張ファイルを用意する
 
-Cursorに入れるファイルの拡張子は**`.vsix`**です。GitHubの「Code → Download ZIP」で入手できるソースコードのZIPとは異なります。
+今回はgdx-sparkの `~/work/llm/strata-coder` に実装済みです。公開GitHubから取り直さず、この作業フォルダーを使います。手元のPCには、今回渡した **`strata-coder-0.2.0.vsix`** を保存してください。VSIXはCursorへインストールするファイルです。ソースコードのZIPとは異なります。
 
-1. ブラウザーで[Strata-Coderのビルド一覧](https://github.com/est2mzd/strata-coder/actions/workflows/ci.yml)を開きます。
-2. GitHubにログインします。ビルド成果物のダウンロードにはログインが必要です。
-3. `main`の最新の実行で、**緑色のチェックが付いたもの**を開きます。
-4. 開いたページの下部にある**Artifacts**を探します。
-5. **`strata-coder-vsix`**をクリックしてZIPをダウンロードします。
-6. ZIPを展開します。中にある**`strata-coder-0.1.0.vsix`**を分かりやすい場所へ保存します。バージョンが更新されると数字部分は変わります。
+まだpushしていないため、GitHub Actionsのmain成果物をダウンロードしても今回の実装は含まれません。将来公開されたときは、v0.2以降のソースと対応するVSIXをそろえてください。手元のPCにソースをcloneする必要はありません。通常の利用にNode.jsやnpmも不要です。
 
-まだ実行中なら緑のチェックになるまで待ちます。Artifactsがない場合は、失敗した実行や保存期限が過ぎた実行を開いていないか確認してください。
+### 2-3. コーディネーターを起動する【gdx-spark側】
 
-**利用するだけなら、Strata-Coderのソースコードをcloneしたり、gdx-sparkへ拡張機能をインストールしたりする必要はありません。**
+Strataの起動用ターミナルを残し、**別のターミナル**で実行します。
 
-### 2-3. SSHの接続名を確認する
+```sh
+ssh gdx-spark
+cd ~/work/llm/strata-coder
+python3 --version
+ls tools/coordinator.py
+```
+
+Python 3.10以上とファイルの存在を確認します。ファイルがなければ古いソースか、移動先が違います。
+
+StrataがAPIキーを要求する構成だけ、同じターミナルで次を実行し、求められたらキーを入力します。キーを要求しない構成では不要です。
+
+```bash
+read -rsp 'Strata API key: ' STRATA_API_KEY; echo
+export STRATA_API_KEY
+```
+
+続いて起動します。
+
+```sh
+python3 tools/coordinator.py --state ~/.local/state/strata-coder-coordinator --port 8091 --worker-limit 4 --inference-limit 1 --queue-capacity 1000 --per-owner 100
+```
+
+`Coordinator ready`が表示されたら、このターミナルも閉じずに残します。
+
+- `worker-limit 4`：全PCを通じて同時に実行するWorkerの上限です。
+- `inference-limit 1`：Strataへ同時に送る推論の上限です。最初は1にします。
+- `queue-capacity 1000`：受付済み・処理中の仕事の総上限です。
+- `per-owner 100`：同じ依頼元ラベルが占有できる受付件数です。
+
+**いずれもCursorのAgent数ではありません。** Agent数は可変で、空き枠がなければ待機します。全PCから同じ１つのコーディネーターへ接続してください。Strataへ直接送られる別アプリの要求は、この制限の対象外です。
+
+最初の起動で認証用ファイル `~/.local/state/strata-coder-coordinator/token` が作られます。別のSSHターミナルからこのファイルを開き、内容を3-4の秘密情報入力欄へコピーします。例えば、gdx-spark側で次を実行すると表示できます。
+
+```sh
+cat ~/.local/state/strata-coder-coordinator/token
+```
+
+**表示される値は管理権限を持つ秘密情報です。Chat・Git・共有スクリーンショットへ貼らないでください。** SSHパスワードやStrata APIキーとは別物です。この構成は同じ利用者の信頼できるPC群向けです。
+
+### 2-4. SSHの接続名を確認する【手元のPC側】
+
 
 手元のターミナルで次を実行します。
 
@@ -203,31 +245,27 @@ Host gdx-spark
 
 `HostName`と`User`の日本語部分を実際の値に置き換えて保存します。実際のIPアドレスやユーザー名は、この公開ガイドには記載していません。再び`ssh gdx-spark`を実行し、ログインできることを確認します。
 
-### 2-4. SSHトンネルを開く【まずはこの方法を使用】
+### 2-5. SSHトンネルを開く【まずはこの方法を使用】
 
 手元のターミナルで、次を１行で実行します。
 
 ```sh
-ssh -N -T -o ExitOnForwardFailure=yes -L 127.0.0.1:18080:127.0.0.1:8080 gdx-spark
+ssh -N -T -o ExitOnForwardFailure=yes -L 127.0.0.1:18091:127.0.0.1:8091 gdx-spark
 ```
 
 パスワードを求められたら入力します。
 
 **入力後に何も表示されず、そのまま待ち続ければ正常です。** このターミナルは閉じずに残します。CursorでStrataを使っている間、通路を維持するためです。
 
-- `18080`：手元のPC側で使うポート番号。
-- `8080`：gdx-spark側のStrataのポート番号。
+- `18091`：手元のPC側で使うポート番号。
+- `8091`：gdx-spark側のコーディネーターのポート番号。
 - `-N`：接続先の操作画面を開かず、通路だけを作る指定。
 
-Strataのポートを変更している場合は、右側の`8080`をその値へ変更してください。
+コーディネーターのポートを変更した場合だけ、右側の`8091`を変更します。queuedモードでは手元から8080へトンネルを作る必要はありません。
 
-### 2-5. 通路が使えるか確認する
+### 2-6. 起動したターミナルを確認する
 
-ブラウザーで、次を開きます。
-
-[http://127.0.0.1:18080/v1/models](http://127.0.0.1:18080/v1/models)
-
-1-4と同じように`data`とモデルの`id`が表示されれば成功です。APIキーを使う構成では認証エラーになる場合があります。その場合は3-4でキーを設定し、3-5の接続確認を行います。
+この時点で、Strata用・コーディネーター用・手元のSSHトンネル用の３つを残します。コーディネーターは認証付きPOST APIなので、ブラウザーでURLを開くだけでは接続確認できません。3-5の拡張コマンドで確認します。
 
 ---
 
@@ -238,7 +276,7 @@ Strataのポートを変更している場合は、右側の`8080`をその値�
 1. Cursorを起動します。
 2. **コマンドパレット**を開きます。Windows／Linuxは`Ctrl + Shift + P`、macOSは`Command + Shift + P`です。これはChat欄ではなく、エディタの操作を検索する入力欄です。
 3. `Extensions: Install from VSIX`と入力し、該当する項目を選びます。
-4. 2-2で展開した**`.vsix`ファイル**を選びます。ZIPファイルは選びません。
+4. 2-2で保存した**`.vsix`ファイル**を選びます。ZIPファイルは選びません。
 5. 再読み込みを求められたら実行します。表示されない場合も、コマンドパレットから`Developer: Reload Window`を実行します。
 6. 左側の拡張機能一覧で`Strata-Coder`を検索し、インストールされていることを確認します。
 
@@ -272,7 +310,7 @@ git commit -m "Add demo file"
 git status --short
 ```
 
-最後のコマンドが**何も表示しなければ準備完了**です。Strata-Coder v0.1は、変更が保存済み・commit済みのGitリポジトリを前提にしています。
+最後のコマンドが**何も表示しなければ準備完了**です。Strata-Coderは、変更が保存済み・commit済みのGitリポジトリを前提にしています。
 
 `Author identity unknown`が出た場合は、このお試しrepo内だけのGitの記録用名前を設定して、commitを再実行できます。
 
@@ -286,7 +324,7 @@ git commit -m "Add demo file"
 
 ### 3-3. Strata-Coderの接続先を設定する
 
-SSHトンネルは2-4のターミナルで動かしたままにします。
+SSHトンネルは2-5のターミナルで動かしたままにします。
 
 1. コマンドパレットを開きます。
 2. **`Preferences: Open Settings (UI)`**を選びます。
@@ -295,30 +333,39 @@ SSHトンネルは2-4のターミナルで動かしたままにします。
 5. 次の値に設定します。
 
 - **Connection Mode**：`direct`
-- **Base Url**：`http://127.0.0.1:18080/v1`
+- **Execution Mode**：`queued`（初期値はsingleなので必ず変更）
+- **Coordinator Url**：`http://127.0.0.1:18091/v1`
+- **Depth**：`auto`（Cursorが依頼時にlow／medium／highと理由を選択）
+- **Worker Concurrency**：`2`
+- **Test Concurrency**：`1`
 - **Python Path**：2-1で動いたコマンド。通常は`python3`、Windowsで`python`を確認した場合は`python`。
-- **Model**：空欄のまま。Strataにロードされた１モデルを自動選択します。
+- **Model／Base Url**：queuedモードでは使用しません。モデルはコーディネーター側で選択します。
 - **Test Commands**：最初のお試しでは空のまま。
 
-**directでも通信はSSHトンネルを通ります。** この設定は「拡張機能自身はトンネルを作らず、2-4で開いた通路につなぐ」という意味です。
+**directでも通信はSSHトンネルを通ります。** この設定は「拡張機能自身はトンネルを作らず、2-5で開いた通路につなぐ」という意味です。
 
 設定をJSONで編集することに慣れている場合は、コマンドパレットの`Preferences: Open User Settings (JSON)`で次を設定しても構いません。**既存の設定全体を置き換えず、同じキーがあれば更新してください。** UIから設定した場合は、こちらの操作は不要です。
 
 ```json
 {
   "strataCoder.connectionMode": "direct",
-  "strataCoder.baseUrl": "http://127.0.0.1:18080/v1",
-  "strataCoder.pythonPath": "python3",
-  "strataCoder.model": ""
+  "strataCoder.executionMode": "queued",
+  "strataCoder.depth": "auto",
+  "strataCoder.coordinatorUrl": "http://127.0.0.1:18091/v1",
+  "strataCoder.workerConcurrency": 2,
+  "strataCoder.testConcurrency": 1,
+  "strataCoder.pythonPath": "python3"
 }
 ```
 
-### 3-4. StrataがAPIキーを要求する場合だけ登録する
+Worker ConcurrencyとTest Concurrencyは、そのワークスペースの実行枠です。複数フォルダーを開く場合は、それぞれに枠があるためPC全体の負荷も考えて設定してください。
 
-1. コマンドパレットで**`Strata-Coder: Set API Key`**を実行します。
-2. Strataサーバーに設定されているAPIキーを入力します。
+### 3-4. Coordinator Tokenを登録する【必須】
 
-SSHのログインパスワードとは別物です。APIキーは拡張機能の秘密情報ストレージへ保存されます。Chat欄や公開Gitリポジトリへ書かないでください。APIキーを設定していないStrataの場合、この手順は不要です。
+1. コマンドパレットで **`Strata-Coder: Set Coordinator Token`** を実行します。
+2. 2-3のtokenファイルの内容を入力します。
+
+拡張の秘密情報ストレージへ保存されます。Settings JSONやChatには書きません。`Set API Key`はsingleモード用で、この手順では使いません。
 
 ### 3-5. 登録と接続確認をする
 
@@ -327,7 +374,7 @@ SSHのログインパスワードとは別物です。APIキーは拡張機能�
 1. **`Strata-Coder: Register / Reconnect`**
 2. **`Strata-Coder: Check Connection`**
 
-`Strata-Coder connected.`と表示されれば、拡張からStrataへ接続できています。Output／出力パネルの`Strata-Coder`には、モデル一覧が表示されます。
+`Strata-Coder connected.`と表示されれば、拡張からStrataへ接続できています。Output／出力パネルの`Strata-Coder`には、`execution_mode: queued`、モデル名、キュー設定を確認してください。
 
 接続先などの設定を変更したときは、タスクが動いていない状態で、この２つを再実行してください。
 
@@ -338,13 +385,17 @@ SSHのログインパスワードとは別物です。APIキーは拡張機能�
 3. Cursorのモデルは普段使っているものを選びます。Strataの名前に置き換える必要はありません。
 4. 次をChat欄へ入力します。
 
-> Strata-Coderを使ってhello.pyを調査してください。最初にstrata_healthで接続を確認し、strata_submitのresearchモードで処理の内容を調べてください。ファイルは変更しないでください。あなたは監督として結果を確認し、短く説明してください。
+> Strata-Coderを使ってhello.pyを調査してください。最初にstrata_healthで接続を確認し、strata_submitのresearchモードで、owner="demo-agent-1"、request_key="demo-research-1"を指定して処理の内容を調べてください。タスクIDを記録し、待機中は短い間隔で状態を問い合わせ続けないでください。ファイルは変更しないでください。あなたは監督として結果を確認し、短く説明してください。
 
 CursorがMCPツールの実行許可を求めた場合は、対象がStrata-Coderであることと内容を確認して進めます。
 
 **正常な流れ**：接続確認 → タスクIDの発行 → 調査結果の取得 → Cursorによる説明、です。Strataは初回の応答に時間がかかる場合があります。
 
 `@Strata-Coder`という新しいチャット参加者を追加する方式ではありません。**いつものCursor Agentが、Strata-Coderのツールを呼び出します。**
+
+ステータスバーと `Strata-Coder: Show Task Status` で進捗を確認できます。この監視はCursorモデルを呼びません。完了通知はChatを自動再開しないため、Chatが終了していたら「先ほどのタスクIDの結果を取得して」と依頼してください。
+
+複数Agentでは各Agentに別のowner、各依頼に別のrequest_keyを付けます。同じ依頼の受付応答が不明で再送するときだけ同じキーを使います。詳しい調査・編集・取消・負荷試験の指示は[テスト用指示集](test-prompts-ja.md)にあります。
 
 ### 3-7. 編集を試す前にテストを登録する
 
@@ -362,17 +413,18 @@ CursorがMCPツールの実行許可を求めた場合は、対象がStrata-Code
 
 `python`を使う環境では配列の先頭も`python`に変更します。この例は**`tests`フォルダーに実際のテストがあるプロジェクト向け**です。上のお試しフォルダーにはテストがないため、そのまま登録しても修正の正しさは確認できません。
 
-設定後、`Register / Reconnect`を実行します。Chatでは、変更するファイル、満たすべき条件、テストID（この例では`unit`）を指定して依頼します。Strataの変更は別の作業場所に保管され、Cursorが差分をレビューしてから元のフォルダーへ適用します。自動commit・pushはしません。
+設定後、`Register / Reconnect`を実行します。Chatでは、変更するファイル、満たすべき条件、テストID（この例では`unit`）を指定して依頼します。Strataの変更は別の作業場所に保管され、Cursorが差分をレビューしてから元のフォルダーへ適用します。`apply_queued`は適用待ちです。`applied`を確認してください。基準コミットが変わった場合は、新しい差分とテストの再レビューが必要です。適用後は未commitの変更が残ります。自動commit・pushはしません。
 
 ---
 
 ## 次回から使うとき
 
 1. 未起動なら1-3でStrataを起動し、1-4で応答を確認します。起動用ターミナルは残します。
-2. 手元のターミナルで2-4のSSHトンネルを開いたままにします。
-3. Cursorで対象のGitリポジトリを開きます。
-4. `Strata-Coder: Check Connection`を実行します。
-5. Agent ChatでStrata-Coderを使うよう依頼します。
+2. 2-3のコーディネーターが起動していることを確認します。未起動なら同じ状態ディレクトリで起動します。
+3. 手元のターミナルで2-5のSSHトンネルを開いたままにします。
+4. Cursorで対象のGitリポジトリを開きます。
+5. `Strata-Coder: Check Connection`を実行します。
+6. Agent ChatでStrata-Coderを使うよう依頼します。
 
 作業を終了し、Strata-Coderのタスクが止まってから、トンネルのターミナルで`Ctrl + C`を押すと接続を閉じられます。
 
@@ -390,7 +442,8 @@ ssh -o BatchMode=yes gdx-spark true
 
 - **Connection Mode**：`ssh`
 - **Ssh Host**：`gdx-spark`
-- **Remote Port**：`8080`
+- **Coordinator Port**：`8091`
+- **Execution Mode**：`queued`のまま。Coordinator Tokenも必要です。
 
 `Register / Reconnect`と`Check Connection`を実行します。この方式では拡張が通路を作るので、手動のトンネル用ターミナルは不要です。鍵認証が未設定の状態では動きません。Strata-CoderはSSHパスワードを保存・自動入力しません。
 
@@ -406,25 +459,27 @@ ssh -o BatchMode=yes gdx-spark true
 
 ### `Could not resolve hostname gdx-spark`
 
-2-3のSSH設定を確認します。設定を作る場所は、gdx-spark側ではなく**手元のPC側**です。
+2-4のSSH設定を確認します。設定を作る場所は、gdx-spark側ではなく**手元のPC側**です。
 
 ### `Permission denied` / `SSH tunnel failed`
 
-まず通常の`ssh gdx-spark`でログインできるか確認します。パスワードなら2-4の手動トンネルと`direct`設定を使ってください。`ssh`モードは鍵／エージェント認証が前提です。
+まず通常の`ssh gdx-spark`でログインできるか確認します。パスワードなら2-5の手動トンネルと`direct`設定を使ってください。`ssh`モードは鍵／エージェント認証が前提です。
 
-### `Address already in use` / `18080`が使えない
+### `Address already in use` / `18091`が使えない
 
-すでにトンネルが動いている場合は、それを利用します。別のアプリが使っている場合は、トンネルの**左側**を`18081`へ変更し、CursorのBase Urlも`http://127.0.0.1:18081/v1`に変更します。右側の`8080`は変更しません。
+すでにトンネルが動いている場合は、それを利用します。別のアプリが使っている場合は、トンネルの**左側**を`18081`へ変更し、CursorのCoordinator Urlも`http://127.0.0.1:18081/v1`に変更します。右側の`8091`は変更しません。
 
 ### `Connection refused` / `Strata-Coder connection failed`
 
 次の順に確認します。
 
 1. 1-3〜1-4：gdx-sparkでStrataを起動し、APIが応答するか。
-2. 2-4：手元のトンネル用ターミナルが残っているか。
-3. 2-5：手元のブラウザーからAPIへ到達するか。
-4. 3-3：Python Path、Base Url、Connection Modeが正しいか。
-5. APIキーを設定している場合は3-4を済ませたか。
+2. 2-3：コーディネーターが起動しているか。
+3. 2-5：手元のトンネル用ターミナルが残っているか。
+4. 3-3：Execution Mode、Python Path、Coordinator Url、Connection Modeが正しいか。
+5. 3-4：Coordinator Tokenを登録したか。認証エラーなら接続先のtokenファイルと照合します。
+
+推論が停止状態になった場合やWorker切断後の復旧は、[障害時の手順](multi-agent-setup-ja.md#7-停止障害時)を確認してください。実行中の仕事は、再起動だけで自動再実行されません。
 
 ### `Repository has uncommitted/untracked changes`
 
@@ -439,3 +494,20 @@ Agentモードか確認し、`Register / Reconnect`を実行してください�
 接続成功と、AIが正しく修正できることは別です。まず１ファイルの小さな作業へ絞ってください。`review_ready`は「レビュー待ち」であり、正しさが保証された状態ではありません。Cursorに差分とテスト結果を確認させます。
 
 それでも進めない場合は、**何番の手順で止まったか・手元のOS・エラー文**を伝えてください。パスワードやAPIキーは含めないでください。
+
+## LLMの深さを選ぶ
+
+User Settingsで`strataCoder.depth`を検索し、`auto / low / medium / high`を選びます。変更後は実行中の仕事がない状態でRegister / Reconnectを実行してください。既存タスクの深さは変更されません。
+
+- auto：Cursorが委譲時に難しさを判断し、深さと短い理由を指定します。判定だけの追加LLM呼び出しは行いません。
+- low：限定された調査、原因が分かっている小さな修正。
+- medium：複数ファイルの修正、調査が必要な不具合。
+- high：設計・並行処理・複雑な原因調査。
+
+Chatで「今回はhighで調べて」と指定すると、そのタスクでは設定の既定値より優先します。明示指定を勝手に引き上げません。autoは失敗の根拠をCursorが確認してから、最大１回の再委譲で深さを上げる運用です。この再委譲回数は監督Skillの指示であり、別Chatをまたいだ強制的な予算管理ではありません。
+
+`Strata-Coder: Show Task Status`に`auto -> medium`などの選択結果と理由が表示されます。`strata_summary`にも保存されます。autoで理由や深さが欠ける依頼はエラーとなり、lowへ黙って変更しません。
+
+深さとは別に`max_steps`（1〜30、標準12）と`max_output_tokens`（128〜8192、標準2048）をタスクに指定できます。`strataCoder.maxOutputTokens`は未指定時の既定値で、queuedでも反映されます。highでも短い出力上限では途中で打ち切られることがあります。
+
+現在のStrataソースにはlow／medium／highの処理がありますが、モデルごとの効果まで自動判定できるAPIではありません。`strata_health`のreasoning_supportは既定でunverified（未検証）です。管理者がモデルを検証した場合だけコーディネーター起動時に`--reasoning-support supported`を指定します。非対応と分かった場合は`--reasoning-support unsupported`を指定し、推論をエラーで停止させます。HTTP成功だけで対応済みとは扱いません。

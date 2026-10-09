@@ -1,3 +1,4 @@
+from .depth import resolve as resolve_depth
 """Task contracts, isolated worktrees, bounded tools, and evidence-backed results.
 
 This is not an OS sandbox. Configured test programs execute repository code with
@@ -114,9 +115,10 @@ class Manager:
         if git(self.repo, 'status', '--porcelain', '--untracked-files=all'):
             raise ValueError('Repository has uncommitted/untracked changes; commit or stash them yourself first')
         if git(self.repo, 'ls-files', '--stage').startswith('160000 ') or '\n160000 ' in git(self.repo, 'ls-files', '--stage'):
-            raise ValueError('Submodules are not supported in v0.1')
+            raise ValueError('Submodules are not supported')
 
-    def submit(self, objective, mode='research', allowed_paths=None, acceptance=None, test_ids=None, max_steps=12):
+    def validate_contract(self, objective, mode='research', allowed_paths=None, acceptance=None, test_ids=None, max_steps=12, depth=None, reasoning_effort=None, depth_reason='', max_output_tokens=None):
+        resolve_depth(self.config, depth, reasoning_effort, depth_reason, max_output_tokens)
         if not isinstance(objective, str) or not 1 <= len(objective) <= 8000:
             raise ValueError('objective must contain 1..8000 characters')
         if mode not in ('research', 'edit'):
@@ -136,11 +138,18 @@ class Manager:
             raise ValueError('Unknown test ID; configure trusted commands in extension settings')
         if type(max_steps) is not int or not 1 <= max_steps <= 30:
             raise ValueError('max_steps must be 1..30')
+        return allowed_paths, acceptance, test_ids
+
+    def submit(self, objective, mode='research', allowed_paths=None, acceptance=None, test_ids=None, max_steps=12, expected_base=None, depth=None, reasoning_effort=None, depth_reason='', max_output_tokens=None):
+        allowed_paths, acceptance, test_ids = self.validate_contract(objective, mode, allowed_paths, acceptance, test_ids, max_steps, depth, reasoning_effort, depth_reason, max_output_tokens)
+        depth_options = resolve_depth(self.config, depth, reasoning_effort, depth_reason, max_output_tokens)
         with self.lock:
             if self.thread and self.thread.is_alive():
                 raise ValueError('One active task per workspace; wait or cancel')
             self.clean()
             base = git(self.repo, 'rev-parse', 'HEAD')
+            if expected_base is not None and base != expected_base:
+                raise ValueError('Repository base changed before execution')
             tid = uuid.uuid4().hex
             folder = self.state / tid
             folder.mkdir(mode=0o700)
@@ -150,7 +159,7 @@ class Manager:
                      objective=objective, mode=mode, allowed_paths=allowed_paths, acceptance=acceptance,
                      test_ids=test_ids, max_steps=max_steps, steps=0, summary='', tests=[], evidence={},
                      usage={'prompt_tokens': 0, 'completion_tokens': 0}, created=time.time(),
-                     cancel=threading.Event())
+                     cancel=threading.Event(), **depth_options)
             self.tasks[tid] = t
             self.save(t)
             self.thread = threading.Thread(target=self.run, args=(t,), daemon=True)
@@ -263,6 +272,18 @@ class Manager:
         raise ValueError('Unknown tool')
 
     def run_test(self, t, test_id):
+        slots = getattr(self, 'test_slots', None)
+        if slots is None:
+            return self._run_test(t, test_id)
+        while not slots.acquire(timeout=.2):
+            if t['cancel'].is_set() or time.monotonic() > t.get('deadline', float('inf')):
+                raise RuntimeError('Cancelled or budget exhausted while waiting for test slot')
+        try:
+            return self._run_test(t, test_id)
+        finally:
+            slots.release()
+
+    def _run_test(self, t, test_id):
         if t['mode'] != 'edit' or test_id not in t['test_ids']:
             raise ValueError('Test not allowed by contract')
         argv = self.tests[test_id]
@@ -342,9 +363,15 @@ class Manager:
                     break
                 t['steps'] = step + 1
                 self.save(t)
-                result = self.transport.chat(messages, tools)
+                if hasattr(self.transport, 'chat_with_options'):
+                    result = self.transport.chat_with_options(messages, tools, {k:t[k] for k in ('reasoning_effort','max_output_tokens')})
+                else:
+                    result = self.transport.chat(messages, tools)
                 if t['cancel'].is_set():
                     t['status'] = 'cancelled'
+                    break
+                if time.monotonic() > t['deadline']:
+                    t['status'] = 'budget_exceeded'
                     break
                 for k in t['usage']:
                     t['usage'][k] += max(0, int(result.get('usage', {}).get(k, 0)))
@@ -406,6 +433,8 @@ class Manager:
         patch = git(wt, 'diff', '--no-ext-diff', '--no-textconv', '--binary', t['base'], binary=True)
         if len(patch) > 900_000:
             raise ValueError('Patch too large; split the task')
+        if changed:
+            patch = b'# Strata-Coder base: ' + t['base'].encode() + b'\n' + patch
         t['changed_files'] = changed
         t['patch_sha256'] = digest(patch)
         t['patch_id'] = self.evidence(t, 'patch', patch.decode())
@@ -419,6 +448,7 @@ class Manager:
         tests = [{k: r[k] for k in ('test_id', 'exit_code', 'reason', 'evidence_id')}
                  for r in t.get('final_tests', [])]
         return {'task_id': task_id, 'status': t['status'], 'steps': t['steps'], 'base': t['base'],
+                'depth_selection': {k:t.get(k) for k in ('depth','reasoning_effort','depth_reason','max_output_tokens')},
                 'worker_summary_untrusted': t['summary'][:1500], 'changed_files': t.get('changed_files', [])[:50],
                 'patch_id': t.get('patch_id'), 'patch_sha256': t.get('patch_sha256'),
                 'final_tests': tests, 'acceptance_requires_supervisor_review': t['acceptance'],
@@ -467,6 +497,35 @@ class Manager:
             t['status'] = 'applied'
             self.save(t)
             return {'status': 'applied', 'files': t['changed_files'], 'committed': False}
+
+    def rebase_for_review(self, task_id):
+        """Reapply the old patch on a new clean base, rerun tests, require new review."""
+        t = self.get(task_id)
+        self.clean()
+        patch = self.state / task_id / (t['patch_id'] + '.txt')
+        current = git(self.repo, 'rev-parse', 'HEAD')
+        wt = self.state / task_id / ('rebase-' + uuid.uuid4().hex[:8])
+        git(self.repo, 'worktree', 'add', '--detach', str(wt), current)
+        try:
+            git(wt, 'apply', '--check', str(patch))
+            git(wt, 'apply', str(patch))
+        except RuntimeError:
+            t['status'] = 'needs_supervisor'
+            t['summary'] = 'Patch conflicts with the new base. Original evidence and both worktrees were preserved.'
+            self.save(t)
+            return self.summary(task_id)
+        t.setdefault('previous_worktrees', []).append(t['worktree'])
+        t['worktree'], t['base'] = str(wt), current
+        t['cancel'].clear()
+        t['deadline'] = time.monotonic() + 600
+        t['status'] = 'needs_supervisor'
+        self.save(t)
+        t['final_tests'] = [self.run_test(t, k) for k in t['test_ids']]
+        self.capture(t)
+        t['status'] = 'review_ready' if all(r['exit_code'] == 0 and not r['reason'] for r in t['final_tests']) else 'needs_supervisor'
+        t['summary'] = 'Rebased onto a changed repository base; final tests rerun. Review the patch again.'
+        self.save(t)
+        return self.summary(task_id)
 
     def close(self):
         for t in self.tasks.values():

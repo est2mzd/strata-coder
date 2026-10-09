@@ -1,0 +1,66 @@
+{
+  "date": "2026-10-09",
+  "version": "0.3.0",
+  "model": "composer-2.5",
+  "cli_version": "2026.10.01-e373342",
+  "task": "pagination",
+  "repeats": 1,
+  "initial_file_sha256": {
+    "subject.py": "5bc62033ab5185463dcc4d1381009558b59994f8d4016515aceaccc756150667",
+    "test_subject.py": "10d79afae117bf5903466e8941740744d43be59723c87bfd23df94aed582a6a2"
+  },
+  "baseline": {
+    "usage": {
+      "inputTokens": 10399,
+      "outputTokens": 937,
+      "cacheReadTokens": 55344,
+      "cacheWriteTokens": 0
+    },
+    "total_tokens": 66680,
+    "tests_passed": 4
+  },
+  "decision_mode": {
+    "usage": {
+      "inputTokens": 8637,
+      "outputTokens": 499,
+      "cacheReadTokens": 4300,
+      "cacheWriteTokens": 0
+    },
+    "total_tokens": 13436,
+    "tests_passed": 4,
+    "state": [
+      "applied"
+    ],
+    "cursor_calls": 1,
+    "strata_usage": [
+      {
+        "prompt_tokens": 6297,
+        "completion_tokens": 570
+      },
+      {
+        "prompt_tokens": 3759,
+        "completion_tokens": 334
+      }
+    ]
+  },
+  "ratio": 0.201499700059988,
+  "reduction_percent": 79.8500299940012,
+  "stage_gates": {
+    "1": {
+      "limit": 0.1,
+      "passed": false
+    },
+    "2": {
+      "limit": 0.02,
+      "passed": false
+    },
+    "3": {
+      "limit": 0.01,
+      "passed": false
+    }
+  },
+  "development_failed_attempts_cursor_tokens": [
+    14077,
+    13558
+  ]
+}

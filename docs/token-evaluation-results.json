@@ -1,0 +1,425 @@
+{
+  "date": "2026-10-09",
+  "cli_version": "2026.10.01-e373342",
+  "source": "Cursor CLI terminal result.usage",
+  "summary": {
+    "target_ratio": 0.01,
+    "quality_gate_passed": true,
+    "token_gate_passed": false,
+    "groups": {
+      "cursor-only": {
+        "runs": 5,
+        "passed": 5,
+        "usage": {
+          "inputTokens": 60454,
+          "outputTokens": 9144,
+          "cacheReadTokens": 325976,
+          "cacheWriteTokens": 0
+        },
+        "total_tokens": 395574,
+        "elapsed_s": 185.48
+      },
+      "strata": {
+        "runs": 5,
+        "passed": 5,
+        "usage": {
+          "inputTokens": 97174,
+          "outputTokens": 11629,
+          "cacheReadTokens": 725652,
+          "cacheWriteTokens": 0
+        },
+        "total_tokens": 834455,
+        "elapsed_s": 469.84
+      }
+    },
+    "balanced_pairs": true,
+    "token_reduction_percent": -110.95,
+    "formula": "inputTokens + outputTokens + cacheReadTokens + cacheWriteTokens; reasoning is already part of output",
+    "cost_measured": false
+  },
+  "runs": [
+    {
+      "task": "pagination",
+      "repeat": 1,
+      "arm": "cursor-only",
+      "base": "2861513a89b33046908d697517128ac89729fa4e",
+      "source_sha256": "5bc62033ab5185463dcc4d1381009558b59994f8d4016515aceaccc756150667",
+      "exit_code": 0,
+      "status": "completed",
+      "cursor_usage": {
+        "inputTokens": 10653,
+        "outputTokens": 1165,
+        "cacheReadTokens": 56525,
+        "cacheWriteTokens": 0
+      },
+      "elapsed_s": 28.6,
+      "checks_passed": true,
+      "changed_files": [
+        "subject.py"
+      ],
+      "model": "composer-2.5",
+      "scope_ok": true,
+      "total_tokens": 68343,
+      "tool_calls": {
+        "readToolCall": 2,
+        "globToolCall": 1,
+        "editToolCall": 1,
+        "shellToolCall": 2
+      },
+      "strata_tasks": []
+    },
+    {
+      "task": "pagination",
+      "repeat": 1,
+      "arm": "strata",
+      "base": "2861513a89b33046908d697517128ac89729fa4e",
+      "source_sha256": "5bc62033ab5185463dcc4d1381009558b59994f8d4016515aceaccc756150667",
+      "exit_code": 0,
+      "status": "completed",
+      "cursor_usage": {
+        "inputTokens": 15922,
+        "outputTokens": 2157,
+        "cacheReadTokens": 131329,
+        "cacheWriteTokens": 0
+      },
+      "elapsed_s": 83.44,
+      "checks_passed": true,
+      "changed_files": [
+        "subject.py"
+      ],
+      "model": "composer-2.5",
+      "scope_ok": true,
+      "total_tokens": 149408,
+      "tool_calls": {
+        "getMcpToolsToolCall": 1,
+        "readToolCall": 3,
+        "globToolCall": 1,
+        "strata-coder-eval-strata_submit": 1,
+        "strata-coder-eval-strata_summary": 3,
+        "strata-coder-eval-strata_evidence": 2,
+        "strata-coder-eval-strata_apply": 1,
+        "shellToolCall": 2
+      },
+      "strata_tasks": [
+        {
+          "status": "applied",
+          "steps": 5,
+          "depth": "auto",
+          "reasoning_effort": "low",
+          "depth_reason": "Single-function pagination fix with clear spec; one file, straightforward logic.",
+          "usage": {
+            "prompt_tokens": 5760,
+            "completion_tokens": 625
+          }
+        }
+      ]
+    },
+    {
+      "task": "intervals",
+      "repeat": 1,
+      "arm": "cursor-only",
+      "base": "704f26989aa9bc71d8a6700439a7aa1d3ba9f422",
+      "source_sha256": "5426d9d7489ce041f7bd6e4e0af68a27963ec1290551e08ed9629ecd4a2e3c7c",
+      "exit_code": 0,
+      "status": "completed",
+      "cursor_usage": {
+        "inputTokens": 15738,
+        "outputTokens": 2724,
+        "cacheReadTokens": 69083,
+        "cacheWriteTokens": 0
+      },
+      "elapsed_s": 47.14,
+      "checks_passed": true,
+      "changed_files": [
+        "subject.py"
+      ],
+      "model": "composer-2.5",
+      "scope_ok": true,
+      "total_tokens": 87545,
+      "tool_calls": {
+        "readToolCall": 2,
+        "globToolCall": 1,
+        "grepToolCall": 1,
+        "shellToolCall": 3,
+        "editToolCall": 1
+      },
+      "strata_tasks": []
+    },
+    {
+      "task": "intervals",
+      "repeat": 1,
+      "arm": "strata",
+      "base": "704f26989aa9bc71d8a6700439a7aa1d3ba9f422",
+      "source_sha256": "5426d9d7489ce041f7bd6e4e0af68a27963ec1290551e08ed9629ecd4a2e3c7c",
+      "exit_code": 0,
+      "status": "completed",
+      "cursor_usage": {
+        "inputTokens": 30143,
+        "outputTokens": 2666,
+        "cacheReadTokens": 156064,
+        "cacheWriteTokens": 0
+      },
+      "elapsed_s": 129.23,
+      "checks_passed": true,
+      "changed_files": [
+        "subject.py"
+      ],
+      "model": "composer-2.5",
+      "scope_ok": true,
+      "total_tokens": 188873,
+      "tool_calls": {
+        "getMcpToolsToolCall": 1,
+        "readToolCall": 3,
+        "globToolCall": 1,
+        "strata-coder-eval-strata_submit": 1,
+        "awaitToolCall": 1,
+        "strata-coder-eval-strata_summary": 4,
+        "strata-coder-eval-strata_evidence": 2,
+        "strata-coder-eval-strata_apply": 1,
+        "shellToolCall": 2
+      },
+      "strata_tasks": [
+        {
+          "status": "applied",
+          "steps": 5,
+          "depth": "auto",
+          "reasoning_effort": "medium",
+          "depth_reason": "Single-function interval merge with sorting, closed-interval touch merge, immutability, and nested-end semantics; straightforward but needs careful edge cases.",
+          "usage": {
+            "prompt_tokens": 6441,
+            "completion_tokens": 1478
+          }
+        }
+      ]
+    },
+    {
+      "task": "cache",
+      "repeat": 1,
+      "arm": "cursor-only",
+      "base": "9b72c227de2ce7b11d390122c10dfc26fce4be6f",
+      "source_sha256": "6fba9885e3b2db05067dc86802459aa10df9310cc2fc1e56c27a192f733a2a13",
+      "exit_code": 0,
+      "status": "completed",
+      "cursor_usage": {
+        "inputTokens": 10532,
+        "outputTokens": 1419,
+        "cacheReadTokens": 57593,
+        "cacheWriteTokens": 0
+      },
+      "elapsed_s": 31.9,
+      "checks_passed": true,
+      "changed_files": [
+        "subject.py"
+      ],
+      "model": "composer-2.5",
+      "scope_ok": true,
+      "total_tokens": 69544,
+      "tool_calls": {
+        "readToolCall": 2,
+        "globToolCall": 1,
+        "editToolCall": 1,
+        "shellToolCall": 2
+      },
+      "strata_tasks": []
+    },
+    {
+      "task": "cache",
+      "repeat": 1,
+      "arm": "strata",
+      "base": "067e9b5e8538320fcd18b848b032abe1af56d004",
+      "source_sha256": "6fba9885e3b2db05067dc86802459aa10df9310cc2fc1e56c27a192f733a2a13",
+      "exit_code": 0,
+      "status": "completed",
+      "cursor_usage": {
+        "inputTokens": 15983,
+        "outputTokens": 2323,
+        "cacheReadTokens": 161550,
+        "cacheWriteTokens": 0
+      },
+      "elapsed_s": 92.06,
+      "checks_passed": true,
+      "changed_files": [
+        "subject.py"
+      ],
+      "model": "composer-2.5",
+      "scope_ok": true,
+      "total_tokens": 179856,
+      "tool_calls": {
+        "getMcpToolsToolCall": 1,
+        "readToolCall": 2,
+        "strata-coder-eval-strata_submit": 1,
+        "strata-coder-eval-strata_summary": 4,
+        "strata-coder-eval-strata_evidence": 2,
+        "strata-coder-eval-strata_apply": 2,
+        "globToolCall": 1,
+        "shellToolCall": 2
+      },
+      "strata_tasks": [
+        {
+          "status": "applied",
+          "steps": 5,
+          "depth": "auto",
+          "reasoning_effort": "low",
+          "depth_reason": "Single-class bug: put stores ttl instead of now+ttl; get should pop expired entries on read.",
+          "usage": {
+            "prompt_tokens": 6059,
+            "completion_tokens": 699
+          }
+        }
+      ]
+    },
+    {
+      "task": "pagination",
+      "repeat": 2,
+      "arm": "strata",
+      "base": "18127a4777542deb77d6f895a785a94e4775cfa4",
+      "source_sha256": "5bc62033ab5185463dcc4d1381009558b59994f8d4016515aceaccc756150667",
+      "exit_code": 0,
+      "status": "completed",
+      "cursor_usage": {
+        "inputTokens": 18775,
+        "outputTokens": 2282,
+        "cacheReadTokens": 128498,
+        "cacheWriteTokens": 0
+      },
+      "elapsed_s": 83.67,
+      "checks_passed": true,
+      "changed_files": [
+        "subject.py"
+      ],
+      "model": "composer-2.5",
+      "scope_ok": true,
+      "total_tokens": 149555,
+      "tool_calls": {
+        "getMcpToolsToolCall": 1,
+        "readToolCall": 2,
+        "globToolCall": 1,
+        "strata-coder-eval-strata_submit": 1,
+        "strata-coder-eval-strata_summary": 3,
+        "strata-coder-eval-strata_evidence": 2,
+        "strata-coder-eval-strata_apply": 1,
+        "shellToolCall": 2
+      },
+      "strata_tasks": [
+        {
+          "status": "applied",
+          "steps": 6,
+          "depth": "auto",
+          "reasoning_effort": "low",
+          "depth_reason": "Single-function pagination bug: wrong range upper bound and missing validation; trivial fix.",
+          "usage": {
+            "prompt_tokens": 6886,
+            "completion_tokens": 578
+          }
+        }
+      ]
+    },
+    {
+      "task": "pagination",
+      "repeat": 2,
+      "arm": "cursor-only",
+      "base": "18127a4777542deb77d6f895a785a94e4775cfa4",
+      "source_sha256": "5bc62033ab5185463dcc4d1381009558b59994f8d4016515aceaccc756150667",
+      "exit_code": 0,
+      "status": "completed",
+      "cursor_usage": {
+        "inputTokens": 10927,
+        "outputTokens": 1498,
+        "cacheReadTokens": 56676,
+        "cacheWriteTokens": 0
+      },
+      "elapsed_s": 31.85,
+      "checks_passed": true,
+      "changed_files": [
+        "subject.py"
+      ],
+      "model": "composer-2.5",
+      "scope_ok": true,
+      "total_tokens": 69101,
+      "tool_calls": {
+        "readToolCall": 2,
+        "globToolCall": 1,
+        "editToolCall": 1,
+        "shellToolCall": 2
+      },
+      "strata_tasks": []
+    },
+    {
+      "task": "intervals",
+      "repeat": 2,
+      "arm": "strata",
+      "base": "2571399c1b505a414800ac5ebdcf74152a651e35",
+      "source_sha256": "5426d9d7489ce041f7bd6e4e0af68a27963ec1290551e08ed9629ecd4a2e3c7c",
+      "exit_code": 0,
+      "status": "completed",
+      "cursor_usage": {
+        "inputTokens": 16351,
+        "outputTokens": 2201,
+        "cacheReadTokens": 148211,
+        "cacheWriteTokens": 0
+      },
+      "elapsed_s": 81.44,
+      "checks_passed": true,
+      "changed_files": [
+        "subject.py"
+      ],
+      "model": "composer-2.5",
+      "scope_ok": true,
+      "total_tokens": 166763,
+      "tool_calls": {
+        "getMcpToolsToolCall": 1,
+        "readToolCall": 1,
+        "globToolCall": 1,
+        "strata-coder-eval-strata_submit": 1,
+        "strata-coder-eval-strata_summary": 4,
+        "strata-coder-eval-strata_evidence": 2,
+        "strata-coder-eval-strata_apply": 1,
+        "shellToolCall": 2
+      },
+      "strata_tasks": [
+        {
+          "status": "applied",
+          "steps": 5,
+          "depth": "auto",
+          "reasoning_effort": "medium",
+          "depth_reason": "Single-function interval merge with clear algorithm; no multi-file refactor.",
+          "usage": {
+            "prompt_tokens": 5841,
+            "completion_tokens": 700
+          }
+        }
+      ]
+    },
+    {
+      "task": "intervals",
+      "repeat": 2,
+      "arm": "cursor-only",
+      "base": "2571399c1b505a414800ac5ebdcf74152a651e35",
+      "source_sha256": "5426d9d7489ce041f7bd6e4e0af68a27963ec1290551e08ed9629ecd4a2e3c7c",
+      "exit_code": 0,
+      "status": "completed",
+      "cursor_usage": {
+        "inputTokens": 12604,
+        "outputTokens": 2338,
+        "cacheReadTokens": 86099,
+        "cacheWriteTokens": 0
+      },
+      "elapsed_s": 45.99,
+      "checks_passed": true,
+      "changed_files": [
+        "subject.py"
+      ],
+      "model": "composer-2.5",
+      "scope_ok": true,
+      "total_tokens": 101041,
+      "tool_calls": {
+        "readToolCall": 2,
+        "globToolCall": 3,
+        "grepToolCall": 1,
+        "shellToolCall": 3,
+        "editToolCall": 1
+      },
+      "strata_tasks": []
+    }
+  ]
+}

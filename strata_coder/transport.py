@@ -95,9 +95,19 @@ class Transport:
     def health(self):
         data = self.request('/models')
         return {'models': [x['id'] for x in data.get('data', []) if isinstance(x.get('id'), str)],
-                'mode': self.config.get('mode', 'ssh')}
+                'mode': self.config.get('mode', 'ssh'), 'reasoning_support': self.config.get('reasoning_support','unverified')}
 
     def chat(self, messages, tools):
+        return self.chat_with_options(messages, tools, {})
+
+    def validate_options(self, options):
+        from .depth import resolve
+        resolve({}, depth=options.get('reasoning_effort', 'low'), max_output_tokens=options.get('max_output_tokens', self.config.get('max_output_tokens',2048)))
+        if self.config.get('reasoning_support') == 'unsupported':
+            raise ValueError('Configured model does not support reasoning depth; choose a supported model')
+
+    def chat_with_options(self, messages, tools, options):
+        self.validate_options(options)
         model = self.config.get('model')
         if not model:
             models = self.health()['models']
@@ -106,7 +116,7 @@ class Transport:
             model = models[0]
         return self.request('/chat/completions', {'model': model, 'messages': messages,
             'tools': tools, 'tool_choice': 'auto', 'stream': False, 'temperature': 0.1,
-            'reasoning_effort': 'low', 'max_tokens': min(8192, max(128, int(self.config.get('max_output_tokens', 2048))))})
+            'reasoning_effort': options.get('reasoning_effort', 'low'), 'max_tokens': min(8192, max(128, int(options.get('max_output_tokens', self.config.get('max_output_tokens', 2048)))))})
 
     def close(self):
         if self.proc:

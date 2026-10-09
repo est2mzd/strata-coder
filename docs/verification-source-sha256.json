@@ -1,0 +1,18 @@
+{
+  "extension/extension.js": "e8f81f11fdfde3c3ddc2365aa8fccc4d30d48d7ea5dd653c764bb01dda41df41",
+  "package.json": "00727d5289bf6c60d310c56fe7f058846592c547a73c47f53e2a67104d1d3810",
+  "strata_coder/__init__.py": "f6a608fbc40a716c062cc80a5c1136a276d79645d934bf2fa9f5a4611b04aa36",
+  "strata_coder/__main__.py": "b2643148c34d83c31a6684af2def52ed4a63ded35f7d1705026376a7e057e2b6",
+  "strata_coder/coordinator.py": "ca63e06c62de8b236df18f01385681961d032107db6265cf4016652306830bd8",
+  "strata_coder/core.py": "bc09075465091c1e361bc32d39da1fe221506fe0a2905476123e016afa367c92",
+  "strata_coder/depth.py": "58b4b36312984d28116b9cd314bce968ace7adb835919bd57e2e6f611ddbe035",
+  "strata_coder/locking.py": "acbb9635dac12afa12f6aa0abcef7827668901b54a479f2a8ef514d23a7c411c",
+  "strata_coder/queue_client.py": "7f7fcc9708bc607af6ff04212ea4c58b2754b64807d193f3aa8e0a642dcb80e6",
+  "strata_coder/transport.py": "eadcdc283315b30f710bb751d455ef2e1734ae31e878558d9f1bc0bb1ea047d0",
+  "tests/extension.test.js": "8e48cfcb530dccc9e3458b00e438648f15b34a3115e11057d3282d94e26443c1",
+  "tests/test_core.py": "a78fc579ca45481351a1a15b9202874a505cb2d1a97ca05796d3fb46ec72591d",
+  "tests/test_depth.py": "7e6af5fa857d3e9e700f645ce176dfced86993f78d4be26d7022d8edb355c14c",
+  "tests/test_distributed.py": "0b9b054e88e3b1281ffe9c14a806fdb3e4c0016f9c982c191e4b13247bbfa645",
+  "tests/test_queue.py": "56a9dca0e9da6a1dbe3b304050e9583ecf09de2130653bb40a88979fea38d2c6",
+  "tests/test_transport.py": "4d5b58f0fead9a12a1629e60f18bc34cce12ccd34c8ec3564ffc7832befd6dc6"
+}
