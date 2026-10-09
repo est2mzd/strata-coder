@@ -6,11 +6,13 @@ Strata-Coder is a Cursor extension, MCP gateway and local coding worker in one r
 
 **Status: v0.1 experimental.** Linux worker execution is tested. Cursor API integration is implemented and tested with mocks, but needs an installed-Cursor acceptance test. Windows/macOS and Remote SSH host behavior need validation. No measured token-saving or quality claims yet.
 
+For step-by-step installation in Japanese, start with [はじめての導入ガイド](docs/quickstart-ja.md).
+
 ## Architecture
 
 ```mermaid
 flowchart LR
-  subgraph Workspace[RTX4060 / RTX3090 PC or Remote SSH workspace host]
+  subgraph Workspace[Client PC or Remote SSH workspace host]
     C[Cursor supervisor] <-->|MCP contracts and compact evidence| G[Strata-Coder gateway]
     G --> W[Worker: inspect / edit / test]
     W --> R[Isolated Git worktree]
@@ -18,7 +20,7 @@ flowchart LR
   W <-->|OpenAI-compatible API via SSH tunnel| S[Strata on DGX Spark]
 ```
 
-Cursor retains task decomposition, design decisions and patch review. The worker returns a small summary and evidence IDs, rather than flooding Cursor with full source and logs. Full patch/test evidence is fetched in bounded pages. Model execution occurs on Spark; file operations and tests occur on the workspace host. The RTX4060 GPU is not required for this worker.
+Cursor retains task decomposition, design decisions and patch review. The worker returns a small summary and evidence IDs, rather than flooding Cursor with full source and logs. Full patch/test evidence is fetched in bounded pages. Model execution occurs on Spark; file operations and tests occur on the workspace host. A local GPU is not required for this worker.
 
 ## Requirements
 

@@ -15,7 +15,7 @@ Not yet verified:
 - Actual installed Cursor Chat discovery, Skill loading and lifecycle behavior (extension tests use mocks).
 - Real key/agent authentication with the extension-owned SSH tunnel (command construction/cleanup tested; the live smoke used a manually managed password tunnel).
 - Windows, macOS, or Cursor Remote SSH extension-host behavior.
-- RTX4060/RTX3090 client hardware, concurrent clients, or global Spark admission control.
+- Client hardware, concurrent clients, or global Spark admission control.
 - Cursor token savings or accuracy improvement compared with Cursor-only work.
 
 The CI workflow repeats offline/local fixture tests and packages a VSIX. It does not connect to a private Strata server.
