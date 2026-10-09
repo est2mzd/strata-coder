@@ -44,27 +44,30 @@ Strataと共有コーディネーターを[既存の起動手順](multi-agent-se
 - 目的（purpose）
 - 現状・計画・不確実性（current）
 - 判断してほしいこと（request）
-- 計画ID、revision、固定された深度
+- 受け入れ条件（acceptance）、固定された深度
+- バッチ照合用ticketと依頼番号n（詳細なID・revisionはローカル保持）
+
+同じ背景・目的・現状・深度はcommonへ一度だけ記載します。受け入れ条件は省略しません。パケット全体が24,000文字を超えた場合は分割が必要として停止します。
 
 4項目は合計800文字以内。超えた要約はStrata側で一度だけ圧縮し、それでも収まらなければ黙って切らず停止します。全文・ログ・証拠はローカルに保存します。短い要約に必要な情報が全て含まれるかはモデルの品質に依存するため、疑問がある場合はinspectを選びます。
 
 ## 3. Cursorには短い指令だけを返させる
 
-新しいChatへ資料を貼り、コードや長い履歴を追加しません。Cursorの返答はJSON配列だけです。
+新しいChatへ資料を貼り、コードや長い履歴を追加しません。Cursorの返答は短いJSONオブジェクトだけです。
 
 ```json
-[{"id":"資料のID","revision":1,"plan":"資料の計画ID","action":"run","depth":"low"}]
+{"ticket":"資料のticketをそのままコピー","decisions":[[0,"run","low"]]}
 ```
 
-`run / revise / inspect / stop`から選択します。reviseとinspectには120文字以内のinstructionを付けます。1指令はJSON全体で240文字以内。利用者が指定した深度を勝手に変更できません。
+各行は`[依頼番号,"run","深度"]`、`[依頼番号,"stop"]`、または`[依頼番号,"inspect","120文字以内の質問"]`／`[依頼番号,"revise","120文字以内の指示"]`です。全依頼へ一つずつ返答します。利用者が指定した深度を勝手に変更できません。詳細IDへの復元と240文字制限の検証はプログラムで実施します。
 
 この初期実装では、IDE Chatの返答を自動で取り込むAPIは使っていません。コピーと貼り付けが必要です。IDE Chatのトークン量はこの操作だけでは取得できず、利用明細などによる別計測が必要です。新しいChatでもCursor内部の固定コンテキストは残ります。
 
 ## 4. 指令を実行する
 
-`Strata-Coder: Execute Decision`を選び、CursorのJSON配列を貼ります。プログラムが以下を実施します。
+`Strata-Coder: Execute Decision`を選び、CursorのJSONオブジェクトを貼ります。プログラムが以下を実施します。
 
-1. ID・revision・実行済み状態・利用者の深度指定を検証。
+1. ticketで契約・資料・revisionの一致を検証し、依頼番号を詳細IDへ復元。欠落・重複・古い指令・深度の矛盾を拒否。
 2. Strataが別worktreeで実装し、登録された最終テストを実施。
 3. 別タスク・別コンテキストのStrataが全文差分と条件をレビュー。機械判定に添えられた根拠はローカルへ保存し、Cursorへ送らない。
 4. テスト成功・レビュー承認・正確な差分ハッシュ・利用者の適用許可がそろった場合だけ適用。
@@ -89,3 +92,25 @@ baseline-tokensは同じ課題のCursor単独実測値であり、合格させ�
 評価だけで固定負担を確認する場合はcursorコマンドに`--measure-over-budget`を付けられます。この場合は予算不足でも1回の計測を行い、そのバッチの機能検証を続けられますが、目標を満たしたとは判定しません。Cursorのツール使用・無効JSON・使用量不明を検出すると指令を採用しません。1バッチのCursor呼出しは最大2回です。
 
 UI方式とCLI方式は別です。CLIはソースを置かない空のworkspaceで、判断資料のみを1回の呼出しへまとめます。IDE Chatの初期指示トークンを除いてCLIだけを測った結果を、IDE全体の1/100達成と称しません。
+
+## Strata側の段階的なコード取得
+
+Pythonでは`code_context`で関数・クラスの一覧を取得し、必要なシンボルの本文だけを取得できます。50件／6,000文字でページ分割し、next_offsetで続きを読みます。全ファイルのSHA-256で古い取得結果を検出できます。コードは実行しません。
+
+[Serenaの段階的な情報取得](https://oraios.github.io/serena/01-about/035_tools.html)を参考に独自実装したASTベースの読み取り機能です。Serena MCPの接続や言語サーバー、参照解決は未実装です。呼出元・import・モジュール直下の処理はsearch/read_fileで確認し、Python以外や構文解析失敗時も既存の読取りを使います。Cursorにはこのツールや本文を渡しません。
+
+## 同じ課題で再評価する
+
+公開した固定課題を使い、専用ディレクトリ内のCursor単独とStrata方式を比較できます。既存のStrata／共有コーディネーターを起動し、queued設定と認証を用意してください。実行するとCursorトークンを消費します。
+
+```sh
+# モデルを呼ばずに課題だけを準備（outは存在しないディレクトリ）
+python3 tools/evaluate_decision.py --out /tmp/strata-fixture-preview --prepare-only
+
+# 別の新規outを指定。configは既存のqueued接続設定。
+python3 tools/evaluate_decision.py --out /absolute/private/evaluation-01 --cli /absolute/path/to/cursor-agent --config /absolute/private/config.json --model composer-2.5
+```
+
+`report.json`に使用量・品質判定、各stdout/stderrに生ログを保存します。unitテスト設定は固定課題用に置き換えます。既存の作業repoは変更せず、専用repoだけで適用を検証します。評価用の予算超過許可を明示して内部実行し、Step 1達成は実測比率と品質を別途判定します。失敗時の使用量も含めます。生ログとconfigにはローカル情報があるため、そのまま公開しないでください。
+
+この評価コマンドの準備処理は動作確認済みです。今回の実機試験は同じfixtureを使う開発用ランナーで実施しており、新しい公開ランナー全体の実機確認はまだです。

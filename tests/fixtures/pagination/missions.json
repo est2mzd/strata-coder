@@ -1,0 +1,20 @@
+[
+  {
+    "background": "Python pagination helper",
+    "purpose": "Do not lose input items",
+    "objective": "Fix pages: preserve all items in order, chunks at most size, empty gives [], nonpositive size raises ValueError.",
+    "allowed_paths": [
+      "subject.py"
+    ],
+    "acceptance": [
+      "all items preserved",
+      "correct empty input",
+      "ValueError for nonpositive size"
+    ],
+    "test_ids": [
+      "unit"
+    ],
+    "depth": "auto",
+    "allow_apply": true
+  }
+]

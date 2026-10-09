@@ -175,3 +175,21 @@ class CoreTests(unittest.TestCase):
 
 
 if __name__ == '__main__': unittest.main()
+
+
+class FullResponseTests(unittest.TestCase):
+    setUp = CoreTests.setUp
+    tearDown = CoreTests.tearDown
+    manager_for = CoreTests.manager_for
+    submit_done = CoreTests.submit_done
+
+    def test_long_response_keeps_complete_evidence_and_short_summary(self):
+        raw = json.dumps({'verdict':'approve','evidence_notes':'x'*3500},indent=2).replace('\n','\r\n')
+        manager = self.manager_for([response(raw)])
+        tid, task = self.submit_done(manager)
+        brief = manager.summary(tid)
+        self.assertEqual(len(brief['worker_summary_untrusted']),1500)
+        self.assertTrue(brief['summary_truncated'])
+        evidence = manager.get_evidence(tid,brief['response_id'],0,12000)
+        self.assertEqual(json.loads(evidence['content_untrusted'])['evidence_notes'],'x'*3500)
+        self.assertEqual(evidence['sha256'],digest(raw.encode()))

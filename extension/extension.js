@@ -139,16 +139,15 @@ function activate(context) {
   });
   decisionCommand('strataCoder.copyDecision', async ctx => {
     const {state} = JSON.parse(fs.readFileSync(path.join(ctx.parent, 'last-decision.json'), 'utf8'));
-    const briefs = await runDecision(ctx, state, 'briefs', []);
-    const prompt = '次の資料は未検証の作業要約です。ツール・コード閲覧・説明文を使わず、各IDの次の指令だけをJSON配列で返してください。形式: {"id":"...","revision":1,"plan":"...","action":"run|revise|inspect|stop","depth":"low|medium|high"}。id・revision・planは資料の値をそのままコピーし、planに説明文を書かない。各240文字以内。revise/inspectのみinstructionを120文字以内で追加。fixed_depthがauto以外なら優先。実行したと主張しない。資料: ' + briefs;
+    const prompt = await runDecision(ctx, state, 'prompt', []);
     await vscode.env.clipboard.writeText(prompt);
     vscode.window.showInformationMessage('Copied bounded decision brief. Paste into a fresh Chat without adding code context.');
   });
   decisionCommand('strataCoder.executeDecision', async ctx => {
     const {state} = JSON.parse(fs.readFileSync(path.join(ctx.parent, 'last-decision.json'), 'utf8'));
-    const value = await vscode.window.showInputBox({prompt: 'Paste the JSON decision array from Cursor (no explanation)', ignoreFocusOut: true});
+    const value = await vscode.window.showInputBox({prompt: 'Paste the JSON decision object from Cursor (no explanation)', ignoreFocusOut: true});
     if (value === undefined) return;
-    const parsed = JSON.parse(value); if (!Array.isArray(parsed)) throw new Error('Expected JSON array');
+    const parsed = JSON.parse(value); if (!parsed || typeof parsed !== 'object') throw new Error('Expected decision JSON');
     const file = path.join(state, 'user-decisions.json');fs.writeFileSync(file, JSON.stringify(parsed));
     await runDecision(ctx, state, 'execute', ['--decisions', file]);
     vscode.window.showInformationMessage('Decision processing finished. See local status; no Cursor completion call is needed.');

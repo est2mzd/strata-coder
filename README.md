@@ -155,3 +155,5 @@ Tests use temporary Git repos and a loopback HTTP server. The extension has no n
 ## License
 
 MIT. Strata and model licenses are separate; no engine/model code is copied here.
+
+実験の経緯と結果は[docsの案内](docs/README.md)、[試行錯誤の記録](docs/trial-history-ja.md)、[方針委譲実験](docs/policy-experiment-ja.md)を参照してください。

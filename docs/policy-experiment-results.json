@@ -1,0 +1,234 @@
+{
+  "trials": [
+    {
+      "trial": 1,
+      "settings": {
+        "research_max_output_tokens": 2048,
+        "upstream_request_timeout_seconds": 90
+      },
+      "report": {
+        "experiment": "policy-v1",
+        "model": "composer-2.5",
+        "baseline": {
+          "initial_tree": "eea5a9961fe7929a3be8b691c8822bc61cfcbe41",
+          "initial_test_exit": 1,
+          "final_test_exit": 0
+        },
+        "policy": {
+          "initial_tree": "eea5a9961fe7929a3be8b691c8822bc61cfcbe41",
+          "initial_test_exit": 1
+        },
+        "complete": false,
+        "quality_passed": false,
+        "step1_passed": false,
+        "cursor_calls": [
+          {
+            "label": "baseline",
+            "usage": {
+              "inputTokens": 16431,
+              "outputTokens": 2155,
+              "cacheReadTokens": 72429,
+              "cacheWriteTokens": 0
+            },
+            "prompt_characters": 1550,
+            "total_tokens": 91015,
+            "exit_code": 0,
+            "elapsed_s": 41.75
+          }
+        ],
+        "source_sha256": {
+          "pagination.py": "07e998865f871034d3bc953602b7d69849b242889a28a19a40c1b8ff28a0be9e",
+          "query.py": "d2200de211b40866fe63b9de687eae54abd8f23f040f770084778e189f2db7e1",
+          "service.py": "e7b7c0ca896ef593fa3450503b27455742e2e7acccaea949deb7b7e93c100e61",
+          "test_catalog.py": "14d362d931cba0770d7fcf0463cd1e13105729e9db1d47c71f81dc87262f9a4b"
+        },
+        "framework_sha256": {
+          "strata_coder/core.py": "2ae167528564fe82bca6d056a9a576f2d46f0b09e6bc6ba1ab0d4c611ae84e9c",
+          "strata_coder/decision.py": "473775d68d97e5b63b4cc0ec7ce49e92f472bdff1e00a64f8d728de450f767d1",
+          "tools/evaluate_policy.py": "aef49bce0e01be615ca4e2180e5047303f81076a2674b3d002253630ebcbf1d5"
+        },
+        "limits": {
+          "cursor_supervisor_calls": 1,
+          "worker_tool_steps_per_phase": 8,
+          "note": "Escalation stops this experiment; no silent extra Cursor calls."
+        },
+        "error": "ValueError: Worker requires attention: failed",
+        "baseline_tokens": 91015
+      },
+      "local_phases": [
+        {
+          "phase": "investigate",
+          "status": "failed",
+          "usage_strata_only": {
+            "prompt_tokens": 3672,
+            "completion_tokens": 214
+          },
+          "failure_summary": "RuntimeError: Coordinator operation failed",
+          "full_response_loaded": false
+        }
+      ],
+      "baseline_observed_changed_files": [
+        "pagination.py",
+        "query.py",
+        "service.py"
+      ],
+      "baseline_independent_test_count": 15,
+      "baseline_independent_test_ok": true,
+      "policy_observed_changed_files": []
+    },
+    {
+      "trial": 2,
+      "settings": {
+        "research_max_output_tokens": 1024,
+        "upstream_request_timeout_seconds": 90
+      },
+      "report": {
+        "experiment": "policy-v1",
+        "model": "composer-2.5",
+        "baseline": {
+          "initial_tree": "eea5a9961fe7929a3be8b691c8822bc61cfcbe41",
+          "initial_test_exit": 1,
+          "final_test_exit": 0
+        },
+        "policy": {
+          "initial_tree": "eea5a9961fe7929a3be8b691c8822bc61cfcbe41",
+          "initial_test_exit": 1
+        },
+        "complete": false,
+        "quality_passed": false,
+        "step1_passed": false,
+        "cursor_calls": [
+          {
+            "label": "baseline",
+            "usage": {
+              "inputTokens": 17457,
+              "outputTokens": 2053,
+              "cacheReadTokens": 67738,
+              "cacheWriteTokens": 0
+            },
+            "prompt_characters": 1550,
+            "total_tokens": 87248,
+            "exit_code": 0,
+            "elapsed_s": 34.92
+          }
+        ],
+        "source_sha256": {
+          "pagination.py": "07e998865f871034d3bc953602b7d69849b242889a28a19a40c1b8ff28a0be9e",
+          "query.py": "d2200de211b40866fe63b9de687eae54abd8f23f040f770084778e189f2db7e1",
+          "service.py": "e7b7c0ca896ef593fa3450503b27455742e2e7acccaea949deb7b7e93c100e61",
+          "test_catalog.py": "14d362d931cba0770d7fcf0463cd1e13105729e9db1d47c71f81dc87262f9a4b"
+        },
+        "framework_sha256": {
+          "strata_coder/core.py": "92dcbe9de1ead369aeb24c4ace4763c775c4d1e05918ba49f7e7bda068e39dd2",
+          "strata_coder/decision.py": "473775d68d97e5b63b4cc0ec7ce49e92f472bdff1e00a64f8d728de450f767d1",
+          "tools/evaluate_policy.py": "3670c82585134ef4abbd2b1c2fe5c340616cc07207dd3fcbd1b77781b8e27ef9"
+        },
+        "limits": {
+          "cursor_supervisor_calls": 1,
+          "worker_tool_steps_per_phase": 8,
+          "note": "Escalation stops this experiment; no silent extra Cursor calls."
+        },
+        "error": "ValueError: Worker requires attention: needs_supervisor",
+        "baseline_tokens": 87248
+      },
+      "local_phases": [
+        {
+          "phase": "investigate",
+          "status": "needs_supervisor",
+          "usage_strata_only": {
+            "prompt_tokens": 6310,
+            "completion_tokens": 1234
+          },
+          "failure_summary": "Model output was truncated; narrow the task or adjust output budget.",
+          "full_response_loaded": false
+        }
+      ],
+      "baseline_observed_changed_files": [
+        "pagination.py",
+        "query.py",
+        "service.py"
+      ],
+      "baseline_independent_test_count": 15,
+      "baseline_independent_test_ok": true,
+      "policy_observed_changed_files": []
+    },
+    {
+      "trial": 3,
+      "settings": {
+        "research_max_output_tokens": 2048,
+        "upstream_request_timeout_seconds": 180
+      },
+      "report": {
+        "experiment": "policy-v1",
+        "model": "composer-2.5",
+        "baseline": {
+          "initial_tree": "eea5a9961fe7929a3be8b691c8822bc61cfcbe41",
+          "initial_test_exit": 1,
+          "final_test_exit": 0
+        },
+        "policy": {
+          "initial_tree": "eea5a9961fe7929a3be8b691c8822bc61cfcbe41",
+          "initial_test_exit": 1
+        },
+        "complete": false,
+        "quality_passed": false,
+        "step1_passed": false,
+        "cursor_calls": [
+          {
+            "label": "baseline",
+            "usage": {
+              "inputTokens": 16790,
+              "outputTokens": 2055,
+              "cacheReadTokens": 68487,
+              "cacheWriteTokens": 0
+            },
+            "prompt_characters": 1550,
+            "total_tokens": 87332,
+            "exit_code": 0,
+            "elapsed_s": 35.47
+          }
+        ],
+        "source_sha256": {
+          "pagination.py": "07e998865f871034d3bc953602b7d69849b242889a28a19a40c1b8ff28a0be9e",
+          "query.py": "d2200de211b40866fe63b9de687eae54abd8f23f040f770084778e189f2db7e1",
+          "service.py": "e7b7c0ca896ef593fa3450503b27455742e2e7acccaea949deb7b7e93c100e61",
+          "test_catalog.py": "14d362d931cba0770d7fcf0463cd1e13105729e9db1d47c71f81dc87262f9a4b"
+        },
+        "framework_sha256": {
+          "strata_coder/core.py": "92dcbe9de1ead369aeb24c4ace4763c775c4d1e05918ba49f7e7bda068e39dd2",
+          "strata_coder/decision.py": "473775d68d97e5b63b4cc0ec7ce49e92f472bdff1e00a64f8d728de450f767d1",
+          "tools/evaluate_policy.py": "4da02c5f61aa8a13fda98e383bc6d211b3ab57ffb93485f51227fbb0fd64e8a7"
+        },
+        "limits": {
+          "cursor_supervisor_calls": 1,
+          "worker_tool_steps_per_phase": 8,
+          "note": "Escalation stops this experiment; no silent extra Cursor calls."
+        },
+        "error": "ValueError: Worker requires attention: needs_supervisor",
+        "baseline_tokens": 87332
+      },
+      "local_phases": [
+        {
+          "phase": "investigate",
+          "status": "needs_supervisor",
+          "usage_strata_only": {
+            "prompt_tokens": 6276,
+            "completion_tokens": 2246
+          },
+          "failure_summary": "Model output was truncated; narrow the task or adjust output budget.",
+          "full_response_loaded": false
+        }
+      ],
+      "baseline_observed_changed_files": [
+        "pagination.py",
+        "query.py",
+        "service.py"
+      ],
+      "baseline_independent_test_count": 15,
+      "baseline_independent_test_ok": true,
+      "policy_observed_changed_files": []
+    }
+  ],
+  "total_known_cursor_tokens_all_trials": 265595,
+  "note": "Includes the Cursor-only control runs and failed trials. Do not interpret absent supervisor calls as successful token savings."
+}

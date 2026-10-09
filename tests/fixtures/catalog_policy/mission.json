@@ -1,0 +1,15 @@
+{
+  "background": "Three-module Python catalog API has pagination and filtering defects.",
+  "purpose": "Return correct catalog pages without breaking public function signatures.",
+  "objective": "Repair query parsing, pagination, and catalog filtering as one change. Preserve public signatures and return keys; no dependencies. Validate positive integer pagination (reject bool/floats), filter active records before sorting/paging, report filtered total, and never mutate inputs. Inspect relevant code, implement, run registered tests and repair within the task budget. Stop if broader API changes are required.",
+  "allowed_paths": ["query.py", "pagination.py", "service.py"],
+  "acceptance": [
+    "Query values accept positive ints or stripped ASCII decimal strings; None uses defaults. Invalid values raise ValueError. Size is capped at maximum.",
+    "paginate takes positive integer page and size, rejects bool/floats; one-based slicing, accurate total and has_next, empty and out-of-range pages work.",
+    "list_catalog filters inactive rows before paging, sorts by id, reports active total, does not mutate records or params.",
+    "Keep existing public signatures and response keys. Change only the three allowed implementation files; do not change tests or add dependencies. All 15 tests pass."
+  ],
+  "test_ids": ["unit"],
+  "depth": "auto",
+  "allow_apply": true
+}

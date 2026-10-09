@@ -1,0 +1,181 @@
+{
+  "source": "saved local experiment records",
+  "baseline_tokens": 66680,
+  "trials": [
+    {
+      "trial": "decision-eval",
+      "purpose": "end-to-end attempt",
+      "states": [
+        {
+          "status": "blocked",
+          "error": "Brief exceeds 800 characters; regenerate, never truncate"
+        }
+      ],
+      "calls": [],
+      "execution_attempted": true
+    },
+    {
+      "trial": "decision-eval2",
+      "purpose": "end-to-end attempt",
+      "states": [
+        {
+          "status": "awaiting_decision",
+          "error": null
+        }
+      ],
+      "calls": [
+        {
+          "usage": {
+            "inputTokens": 9436,
+            "outputTokens": 1059,
+            "cacheReadTokens": 3582,
+            "cacheWriteTokens": 0
+          },
+          "total_tokens": 14077
+        }
+      ],
+      "execution_attempted": true
+    },
+    {
+      "trial": "decision-eval3",
+      "purpose": "end-to-end attempt",
+      "states": [
+        {
+          "status": "blocked",
+          "error": "Worker requires attention: failed"
+        }
+      ],
+      "calls": [],
+      "execution_attempted": true
+    },
+    {
+      "trial": "decision-eval4",
+      "purpose": "end-to-end attempt",
+      "states": [
+        {
+          "status": "blocked",
+          "error": "Extra data: line 3 column 1 (char 147)"
+        }
+      ],
+      "calls": [
+        {
+          "usage": {
+            "inputTokens": 10077,
+            "outputTokens": 624,
+            "cacheReadTokens": 2857,
+            "cacheWriteTokens": 0
+          },
+          "total_tokens": 13558
+        }
+      ],
+      "execution_attempted": true
+    },
+    {
+      "trial": "decision-eval5",
+      "purpose": "end-to-end attempt",
+      "states": [
+        {
+          "status": "applied",
+          "error": null
+        }
+      ],
+      "calls": [
+        {
+          "usage": {
+            "inputTokens": 8637,
+            "outputTokens": 499,
+            "cacheReadTokens": 4300,
+            "cacheWriteTokens": 0
+          },
+          "total_tokens": 13436
+        }
+      ],
+      "execution_attempted": true
+    },
+    {
+      "trial": "decision-compact-eval",
+      "purpose": "end-to-end attempt",
+      "states": [
+        {
+          "status": "blocked",
+          "error": "Extra data: line 7 column 1 (char 163)"
+        }
+      ],
+      "calls": [
+        {
+          "usage": {
+            "inputTokens": 11320,
+            "outputTokens": 500,
+            "cacheReadTokens": 4284,
+            "cacheWriteTokens": 0
+          },
+          "total_tokens": 16104
+        }
+      ],
+      "execution_attempted": true
+    },
+    {
+      "trial": "decision-compact-eval2",
+      "purpose": "end-to-end attempt",
+      "states": [
+        {
+          "status": "blocked",
+          "error": "Unrecognized text after review verdict; inspect without applying"
+        }
+      ],
+      "calls": [
+        {
+          "usage": {
+            "inputTokens": 8640,
+            "outputTokens": 634,
+            "cacheReadTokens": 4284,
+            "cacheWriteTokens": 0
+          },
+          "total_tokens": 13558
+        }
+      ],
+      "execution_attempted": true
+    },
+    {
+      "trial": "decision-compact-eval3",
+      "purpose": "end-to-end attempt",
+      "states": [
+        {
+          "status": "blocked",
+          "error": "Unterminated string starting at: line 1 column 163 (char 162)"
+        }
+      ],
+      "calls": [
+        {
+          "usage": {
+            "inputTokens": 9333,
+            "outputTokens": 511,
+            "cacheReadTokens": 3582,
+            "cacheWriteTokens": 0
+          },
+          "total_tokens": 13426
+        }
+      ],
+      "execution_attempted": true
+    },
+    {
+      "trial": "old-protocol-recheck",
+      "purpose": "protocol-only diagnostic",
+      "states": [],
+      "calls": [
+        {
+          "usage": {
+            "inputTokens": 8655,
+            "outputTokens": 928,
+            "cacheReadTokens": 4280,
+            "cacheWriteTokens": 0
+          },
+          "total_tokens": 13863
+        }
+      ],
+      "execution_attempted": false
+    }
+  ],
+  "known_cursor_tokens": 98022,
+  "note": "No calls means Cursor not invoked in this trial, not zero total Strata work. Old protocol diagnostic reused a copied batch; copied error is not a new execution failure."
+}
