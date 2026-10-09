@@ -1,0 +1,36 @@
+{
+  "name": "strata-coder",
+  "displayName": "Strata-Coder",
+  "description": "Let Cursor supervise local coding workers powered by Strata over SSH.",
+  "version": "0.1.0",
+  "publisher": "est2mzd",
+  "license": "MIT",
+  "repository": {"type": "git", "url": "https://github.com/est2mzd/strata-coder.git"},
+  "engines": {"vscode": "^1.96.0"},
+  "categories": ["AI", "Other"],
+  "main": "./extension/extension.js",
+  "extensionKind": ["workspace"],
+  "activationEvents": ["onStartupFinished"],
+  "capabilities": {"untrustedWorkspaces": {"supported": false}},
+  "scripts": {"test": "python3 -m unittest discover -s tests -v", "check": "node --check extension/extension.js"},
+  "contributes": {
+    "commands": [
+      {"command": "strataCoder.connect", "title": "Strata-Coder: Register / Reconnect"},
+      {"command": "strataCoder.checkConnection", "title": "Strata-Coder: Check Connection"},
+      {"command": "strataCoder.setApiKey", "title": "Strata-Coder: Set API Key"}
+    ],
+    "configuration": {
+      "title": "Strata-Coder",
+      "properties": {
+        "strataCoder.connectionMode": {"type": "string", "enum": ["ssh", "direct"], "default": "ssh", "scope": "machine", "description": "SSH owns a loopback tunnel. Direct connects to an existing tunnel or HTTPS API."},
+        "strataCoder.sshHost": {"type": "string", "default": "gdx-spark", "scope": "machine", "description": "SSH config alias on the workspace host; key/agent authentication required."},
+        "strataCoder.remotePort": {"type": "number", "default": 8080, "minimum": 1, "maximum": 65535, "scope": "machine"},
+        "strataCoder.baseUrl": {"type": "string", "default": "http://127.0.0.1:18080/v1", "scope": "machine"},
+        "strataCoder.model": {"type": "string", "default": "", "scope": "machine", "description": "Empty auto-selects the single loaded model."},
+        "strataCoder.pythonPath": {"type": "string", "default": "python3", "scope": "machine", "description": "Python 3.10+ executable on the workspace host. Windows may need python."},
+        "strataCoder.maxOutputTokens": {"type": "number", "default": 2048, "minimum": 128, "maximum": 8192, "scope": "machine"},
+        "strataCoder.testCommands": {"type": "object", "default": {}, "scope": "machine", "description": "Trusted test ID -> argv array. Runs repository code with your privileges; only trusted repos.", "additionalProperties": {"type": "array", "items": {"type": "string"}, "minItems": 1}}
+      }
+    }
+  }
+}
